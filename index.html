@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Immersive Hangman Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Dancing+Script:wght@700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Creepster', cursive;
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
+            color: #00ff00;
+            overflow-x: hidden;
+            height: 100vh;
+            perspective: 1000px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            padding: 10px;
+            position: relative;
+        }
+        
+        .title {
+            font-size: clamp(1.5rem, 4vw, 3rem);
+            text-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
+            margin-bottom: 15px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00; }
+            to { text-shadow: 0 0 30px #00ff00, 0 0 50px #00ff00; }
+        }
+        
+        .game-modes {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .mode-btn {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #333, #666);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            transition: all 0.3s ease;
+            transform: perspective(300px) rotateX(15deg);
+        }
+        
+        .mode-btn:hover, .mode-btn.active {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            color: #000;
+            transform: perspective(300px) rotateX(0deg) scale(1.1);
+        }
+        
+        .race-track {
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(90deg, #222 0%, #444 50%, #222 100%);
+            border: 2px solid #00ff00;
+            border-radius: 30px;
+            position: relative;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .runner {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: clamp(1.5rem, 3vw, 2.5rem);
+            transition: left 0.5s ease;
+        }
+        
+        .player-runner {
+            left: 5%;
+            filter: hue-rotate(120deg);
+        }
+        
+        .matrix-runner {
+            right: 5%;
+            filter: hue-rotate(0deg);
+        }
+        
+        .word-display {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .letter-box {
+            width: clamp(40px, 8vw, 60px);
+            height: clamp(40px, 8vw, 60px);
+            background: linear-gradient(45deg, #1a1a1a, #333);
+            border: 3px solid #00ff00;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 4vw, 2rem);
+            font-weight: bold;
+            transform: perspective(200px) rotateX(30deg);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .letter-box.revealed {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            color: #000;
+            transform: perspective(200px) rotateX(0deg) scale(1.1);
+            animation: bubble 0.5s ease;
+        }
+        
+        .letter-box.wrong {
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            color: #fff;
+            transform: perspective(200px) rotateX(45deg) scale(0.9);
+            animation: break 0.5s ease;
+        }
+        
+        @keyframes bubble {
+            0% { transform: perspective(200px) rotateX(30deg) scale(1); }
+            50% { transform: perspective(200px) rotateX(-15deg) scale(1.3); }
+            100% { transform: perspective(200px) rotateX(0deg) scale(1.1); }
+        }
+        
+        @keyframes break {
+            0% { transform: perspective(200px) rotateX(30deg) scale(1); }
+            50% { transform: perspective(200px) rotateX(60deg) scale(1.2); }
+            100% { transform: perspective(200px) rotateX(45deg) scale(0.9); }
+        }
+        
+        .cursive-display {
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(1.5rem, 4vw, 3rem);
+            margin-top: 10px;
+        }
+        
+        .keyboard-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .keyboard-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .key-cube {
+            width: clamp(35px, 6vw, 50px);
+            height: clamp(35px, 6vw, 50px);
+            background: linear-gradient(45deg, #2a2a2a, #1a1a1a);
+            border: 2px solid #444;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+            font-weight: bold;
+            color: #fff;
+            transition: all 0.3s ease;
+            transform: perspective(300px) rotateX(20deg) rotateY(5deg);
+            position: relative;
+        }
+        
+        .key-cube:hover {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            color: #000;
+            transform: perspective(300px) rotateX(0deg) rotateY(0deg) scale(1.1);
+            box-shadow: 0 0 20px #00ff0050;
+        }
+        
+        .key-cube.used {
+            background: linear-gradient(45deg, #666, #333);
+            color: #999;
+            cursor: not-allowed;
+            transform: perspective(300px) rotateX(45deg) rotateY(10deg) scale(0.8);
+        }
+        
+        .key-cube.wrong {
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: perspective(300px) rotateX(20deg) rotateY(5deg) translateX(0); }
+            25% { transform: perspective(300px) rotateX(20deg) rotateY(5deg) translateX(-5px); }
+            75% { transform: perspective(300px) rotateX(20deg) rotateY(5deg) translateX(5px); }
+        }
+        
+        .wooden-crate {
+            width: clamp(60px, 10vw, 80px);
+            height: clamp(60px, 10vw, 80px);
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            border: 3px solid #654321;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: #FFD700;
+            transform: perspective(400px) rotateX(25deg) rotateY(-10deg);
+            transition: all 0.4s ease;
+            margin: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .wooden-crate::before {
+            content: '📦';
+            position: absolute;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+        }
+        
+        .wooden-crate:hover {
+            transform: perspective(400px) rotateX(0deg) rotateY(0deg) scale(1.1);
+            background: linear-gradient(45deg, #DAA520, #FFD700);
+        }
+        
+        .wooden-crate.opened {
+            background: linear-gradient(45deg, #444, #666);
+            animation: crateOpen 0.8s ease;
+        }
+        
+        .wooden-crate.opened::before {
+            content: '⭐';
+            animation: starGlow 1s ease infinite;
+        }
+        
+        @keyframes crateOpen {
+            0% { transform: perspective(400px) rotateX(25deg) rotateY(-10deg) scale(1); }
+            50% { transform: perspective(400px) rotateX(-30deg) rotateY(15deg) scale(1.3); }
+            100% { transform: perspective(400px) rotateX(0deg) rotateY(0deg) scale(1.1); }
+        }
+        
+        @keyframes starGlow {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 15px;
+            font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+        }
+        
+        .wrong-letters {
+            color: #ff0000;
+            text-shadow: 0 0 10px #ff0000;
+        }
+        
+        .game-status {
+            text-align: center;
+            font-size: clamp(1.2rem, 3vw, 2rem);
+            margin: 20px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .win {
+            color: #00ff00;
+            text-shadow: 0 0 30px #00ff00;
+            animation: victory 1s ease infinite;
+        }
+        
+        .lose {
+            color: #ff0000;
+            text-shadow: 0 0 30px #ff0000;
+            animation: defeat 1s ease infinite;
+        }
+        
+        @keyframes victory {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes defeat {
+            0%, 100% { transform: rotateZ(0deg); }
+            25% { transform: rotateZ(2deg); }
+            75% { transform: rotateZ(-2deg); }
+        }
+        
+        .reset-btn {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #ff6600, #ff9900);
+            border: none;
+            border-radius: 15px;
+            color: #fff;
+            font-family: inherit;
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            cursor: pointer;
+            transform: perspective(300px) rotateX(15deg);
+            transition: all 0.3s ease;
+        }
+        
+        .reset-btn:hover {
+            transform: perspective(300px) rotateX(0deg) scale(1.1);
+            box-shadow: 0 0 25px #ff660050;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 5px;
+            }
+            
+            .keyboard-row {
+                gap: 5px;
+            }
+            
+            .word-display {
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">3D HANGMAN MATRIX</h1>
+        
+        <div class="game-modes">
+            <button class="mode-btn active" data-mode="normal">Normal Mode</button>
+            <button class="mode-btn" data-mode="cursive">Cursive Challenge</button>
+        </div>
+        
+        <div class="race-track">
+            <div class="runner player-runner">🏃‍♂️</div>
+            <div class="runner matrix-runner">🤖</div>
+        </div>
+        
+        <div class="game-info">
+            <div class="attempts">Attempts: <span id="attemptsLeft">6</span>/6</div>
+            <div class="wrong-letters">Wrong: <span id="wrongLetters"></span></div>
+        </div>
+        
+        <div class="word-display" id="wordDisplay"></div>
+        <div class="cursive-display" id="cursiveDisplay" style="display: none;"></div>
+        
+        <div class="wooden-crate" id="woodenCrate">
+            <span style="position: relative; z-index: 1;">?</span>
+        </div>
+        
+        <div class="keyboard-container" id="keyboardContainer">
+            <!-- Keyboard will be generated by JavaScript -->
+        </div>
+        
+        <div class="game-status" id="gameStatus"></div>
+        
+        <button class="reset-btn" onclick="resetGame()">🔄 New Game</button>
+    </div>
+
+    <script>
+        // Game state
+        let currentWord = '';
+        let currentMode = 'normal';
+        let guessedLetters = new Set();
+        let wrongGuesses = 0;
+        let maxWrongGuesses = 6;
+        let gameOver = false;
+        let crateUsed = false;
+        
+        // Word lists
+        const normalWords = [
+            'JAVASCRIPT', 'COMPUTER', 'HANGMAN', 'KEYBOARD', 'MONITOR', 'PROGRAMMING',
+            'DEVELOPER', 'SOFTWARE', 'HARDWARE', 'INTERNET', 'WEBSITE', 'DATABASE',
+            'ALGORITHM', 'FUNCTION', 'VARIABLE', 'ARRAY', 'OBJECT', 'METHOD'
+        ];
+        
+        const cursiveWords = [
+            'BEAUTIFUL', 'ELEGANT', 'GRACEFUL', 'ARTISTIC', 'CREATIVE', 'FLOWING',
+            'STYLISH', 'CLASSIC', 'REFINED', 'SOPHISTICATED', 'CALLIGRAPHY', 'SCRIPT'
+        ];
+        
+        // Cursive letter mappings (simplified for display)
+        const cursiveMap = {
+            'A': '𝒜', 'B': '𝐵', 'C': '𝒞', 'D': '𝒟', 'E': '𝐸', 'F': '𝐹',
+            'G': '𝒢', 'H': '𝐻', 'I': '𝐼', 'J': '𝒥', 'K': '𝒦', 'L': '𝐿',
+            'M': '𝑀', 'N': '𝒩', 'O': '𝒪', 'P': '𝒫', 'Q': '𝒬', 'R': '𝑅',
+            'S': '𝒮', 'T': '𝒯', 'U': '𝒰', 'V': '𝒱', 'W': '𝒲', 'X': '𝒳',
+            'Y': '𝒴', 'Z': '𝒵'
+        };
+        
+        // Keyboard layout
+        const keyboardLayout = [
+            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+            ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+        ];
+        
+        // Initialize game
+        function initGame() {
+            resetGame();
+            createKeyboard();
+            setupEventListeners();
+        }
+        
+        function createKeyboard() {
+            const container = document.getElementById('keyboardContainer');
+            container.innerHTML = '';
+            
+            keyboardLayout.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'keyboard-row';
+                
+                row.forEach(letter => {
+                    const key = document.createElement('div');
+                    key.className = 'key-cube';
+                    key.textContent = letter;
+                    key.dataset.letter = letter;
+                    key.addEventListener('click', () => guessLetter(letter));
+                    rowDiv.appendChild(key);
+                });
+                
+                container.appendChild(rowDiv);
+            });
+        }
+        
+        function setupEventListeners() {
+            // Mode switching
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentMode = e.target.dataset.mode;
+                    resetGame();
+                });
+            });
+            
+            // Wooden crate
+            document.getElementById('woodenCrate').addEventListener('click', useCrate);
+            
+            // Keyboard events
+            document.addEventListener('keydown', (e) => {
+                const letter = e.key.toUpperCase();
+                if (letter.match(/[A-Z]/) && letter.length === 1) {
+                    guessLetter(letter);
+                }
+            });
+        }
+        
+        function resetGame() {
+            // Choose word based on mode
+            const wordList = currentMode === 'cursive' ? cursiveWords : normalWords;
+            currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+            
+            // Reset game state
+            guessedLetters.clear();
+            wrongGuesses = 0;
+            gameOver = false;
+            crateUsed = false;
+            
+            // Reset UI
+            updateWordDisplay();
+            updateCursiveDisplay();
+            updateAttemptsDisplay();
+            updateWrongLettersDisplay();
+            updateGameStatus('');
+            updateRaceTrack();
+            resetKeyboard();
+            resetCrate();
+        }
+        
+        function updateWordDisplay() {
+            const display = document.getElementById('wordDisplay');
+            display.innerHTML = '';
+            
+            for (let letter of currentWord) {
+                const letterBox = document.createElement('div');
+                letterBox.className = 'letter-box';
+                
+                if (guessedLetters.has(letter)) {
+                    letterBox.textContent = letter;
+                    letterBox.classList.add('revealed');
+                } else {
+                    letterBox.textContent = '_';
+                }
+                
+                display.appendChild(letterBox);
+            }
+        }
+        
+        function updateCursiveDisplay() {
+            const display = document.getElementById('cursiveDisplay');
+            if (currentMode === 'cursive') {
+                display.style.display = 'block';
+                let cursiveText = '';
+                for (let letter of currentWord) {
+                    if (guessedLetters.has(letter)) {
+                        cursiveText += cursiveMap[letter] || letter;
+                    } else {
+                        cursiveText += '_';
+                    }
+                    cursiveText += ' ';
+                }
+                display.textContent = cursiveText;
+            } else {
+                display.style.display = 'none';
+            }
+        }
+        
+        function guessLetter(letter) {
+            if (gameOver || guessedLetters.has(letter)) return;
+            
+            guessedLetters.add(letter);
+            
+            const keyElement = document.querySelector(`[data-letter="${letter}"]`);
+            keyElement.classList.add('used');
+            
+            if (currentWord.includes(letter)) {
+                // Correct guess
+                keyElement.style.background = 'linear-gradient(45deg, #00ff00, #00cc00)';
+                keyElement.style.color = '#000';
+            } else {
+                // Wrong guess
+                wrongGuesses++;
+                keyElement.classList.add('wrong');
+                keyElement.style.background = 'linear-gradient(45deg, #ff0000, #cc0000)';
+                
+                // Mark wrong letters in word display
+                const letterBoxes = document.querySelectorAll('.letter-box');
+                letterBoxes.forEach(box => {
+                    if (!currentWord.includes(letter) && !box.classList.contains('revealed')) {
+                        // This is for visual feedback only
+                    }
+                });
+            }
+            
+            updateWordDisplay();
+            updateCursiveDisplay();
+            updateAttemptsDisplay();
+            updateWrongLettersDisplay();
+            updateRaceTrack();
+            checkGameEnd();
+        }
+        
+        function useCrate() {
+            if (crateUsed || gameOver) return;
+            
+            const crate = document.getElementById('woodenCrate');
+            crate.classList.add('opened');
+            crateUsed = true;
+            
+            // Give a free letter
+            const unguessedLetters = [];
+            for (let letter of currentWord) {
+                if (!guessedLetters.has(letter)) {
+                    unguessedLetters.push(letter);
+                }
+            }
+            
+            if (unguessedLetters.length > 0) {
+                const freeLetter = unguessedLetters[Math.floor(Math.random() * unguessedLetters.length)];
+                setTimeout(() => {
+                    guessLetter(freeLetter);
+                    crate.innerHTML = '<span style="position: relative; z-index: 1;">✨</span>';
+                }, 800);
+            }
+        }
+        
+        function updateAttemptsDisplay() {
+            document.getElementById('attemptsLeft').textContent = maxWrongGuesses - wrongGuesses;
+        }
+        
+        function updateWrongLettersDisplay() {
+            const wrongLetters = Array.from(guessedLetters).filter(letter => !currentWord.includes(letter));
+            document.getElementById('wrongLetters').textContent = wrongLetters.join(', ');
+        }
+        
+        function updateRaceTrack() {
+            const totalLetters = new Set(currentWord).size;
+            const correctLetters = Array.from(guessedLetters).filter(letter => currentWord.includes(letter)).length;
+            const playerProgress = (correctLetters / totalLetters) * 85; // 85% to leave room at end
+            const matrixProgress = (wrongGuesses / maxWrongGuesses) * 85;
+            
+            document.querySelector('.player-runner').style.left = `${5 + playerProgress}%`;
+            document.querySelector('.matrix-runner').style.right = `${5 + matrixProgress}%`;
+        }
+        
+        function checkGameEnd() {
+            const hasWon = currentWord.split('').every(letter => guessedLetters.has(letter));
+            const hasLost = wrongGuesses >= maxWrongGuesses;
+            
+            if (hasWon) {
+                gameOver = true;
+                updateGameStatus('🎉 HUMAN WINS! 🎉', 'win');
+                // Player reaches finish line
+                document.querySelector('.player-runner').style.left = '90%';
+            } else if (hasLost) {
+                gameOver = true;
+                updateGameStatus('🤖 MATRIX WINS! 🤖', 'lose');
+                // Matrix reaches finish line
+                document.querySelector('.matrix-runner').style.right = '90%';
+                // Reveal the word
+                setTimeout(() => {
+                    for (let letter of currentWord) {
+                        guessedLetters.add(letter);
+                    }
+                    updateWordDisplay();
+                    updateCursiveDisplay();
+                }, 500);
+            }
+        }
+        
+        function updateGameStatus(message, className = '') {
+            const status = document.getElementById('gameStatus');
+            status.textContent = message;
+            status.className = `game-status ${className}`;
+        }
+        
+        function resetKeyboard() {
+            document.querySelectorAll('.key-cube').forEach(key => {
+                key.classList.remove('used', 'wrong');
+                key.style.background = '';
+                key.style.color = '';
+            });
+        }
+        
+        function resetCrate() {
+            const crate = document.getElementById('woodenCrate');
+            crate.classList.remove('opened');
+            crate.innerHTML = '<span style="position: relative; z-index: 1;">?</span>';
+        }
+        
+        // Initialize the game when page loads
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
